@@ -32,4 +32,4 @@ jobs:
           export AUTH_JAVA_PROBE="$PWD/tests/ArgumentProbe.java"
           .venv/bin/python tests/test_auth.py
           xvfb-run -a .venv/bin/python tests/gui.py
-          dbus-run-session -- .venv/bin/python tests/keyring.py
+          dbus-run-session --config-file=tests/session.conf -- .venv/bin/python tests/keyring.py
