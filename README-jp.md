@@ -6,7 +6,14 @@ Linux の Minecraft Java Edition 用の認証ヘルパーです。Microsoft の�
 
 ## 手元で使う
 
-Python 3.10 以降と、空でないパスワードで保護した永続的な既定の GNOME キーリングが必要です。GUI を使う場合は Zenity と xdg-open も用意してください。
+ログインには、空でないパスワードで保護した永続的な既定の GNOME キーリングとデスクトップセッションが必要です。x86_64 または aarch64 Linux では、このリポジトリ内で次のコマンドを実行すると、Nix が Python と GUI の依存関係を用意します。
+
+```sh
+nix run . -- --help
+nix run . -- login
+```
+
+Python でインストールする場合は 3.10 以降を使います。GUI を使う場合は Zenity と xdg-open も用意してください。
 
 ```sh
 python3 -m venv .venv
@@ -19,6 +26,8 @@ python3 -m venv .venv
 Linux ユーザーごとに1アカウントを登録できます。`minecraft-account --gui` で管理画面を開き、`minecraft-account logout` でローカルの登録を削除できます。ランチャーからはゲームディレクトリ内で `minecraft-account launch -- /absolute/path/to/java ...` に通常の Java 引数とゲーム引数を渡します。ユーザー名、UUID、アクセストークンはヘルパーが設定します。
 
 ## テスト
+
+`nix flake check` でパッケージをビルドし、テストを実行できます。他の flake からは `lib.mkAccount { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
 
 **Account tests** は Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[テストの実行手順](.github/workflows/test.yml)
 
