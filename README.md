@@ -9,8 +9,17 @@ instance, classpath, and game arguments.
 
 ## Run locally
 
-Use Python 3.10 or later and a desktop session with a password-protected,
-persistent default GNOME keyring. The optional GUI uses Zenity and xdg-open.
+Sign-in requires a desktop session with a password-protected, persistent
+default GNOME keyring. From a checkout on x86_64 or aarch64 Linux, Nix supplies
+the Python and GUI dependencies:
+
+```sh
+nix run . -- --help
+nix run . -- login
+```
+
+For a Python installation, use Python 3.10 or later. The optional GUI uses
+Zenity and xdg-open.
 
 ```sh
 python3 -m venv .venv
@@ -27,6 +36,11 @@ in the game directory with the launcher's normal Java and game arguments.
 The helper supplies the username, UUID and access token.
 
 ## Tests
+
+Run `nix flake check` to build the package and run the tests. A consuming flake
+can build it with its own package set using `lib.mkAccount { inherit pkgs; }`.
+The optional `checkJdk` argument selects the Java used in tests and defaults
+to `pkgs.jdk25`. The launcher supplies Java when starting a game.
 
 The **Account tests** workflow runs on Ubuntu with synthetic accounts. It
 exercises Microsoft and Minecraft response handling, a real Java process,
