@@ -1,6 +1,6 @@
-# minecraft-account
+# minecraft-auth
 
-[English](README.md)
+[English](README.md) | 日本語
 
 Linux の Minecraft Java Edition 用の認証ヘルパーです。Microsoft のデバイスコードでログインし、アカウントを GNOME Keyring に保存します。ランチャーが用意した Java の起動コマンドに、封印した無名ファイル記述子を介して認証情報を渡します。
 
@@ -18,18 +18,18 @@ Python でインストールする場合は 3.10 以降を使います。GUI を
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install .
-.venv/bin/minecraft-account --help
-.venv/bin/minecraft-account login
-.venv/bin/minecraft-account status
+.venv/bin/minecraft-auth --help
+.venv/bin/minecraft-auth login
+.venv/bin/minecraft-auth status
 ```
 
-Linux ユーザーごとに1アカウントを登録できます。`minecraft-account --gui` で管理画面を開き、`minecraft-account logout` でローカルの登録を削除できます。ランチャーからはゲームディレクトリ内で `minecraft-account launch -- /absolute/path/to/java ...` に通常の Java 引数とゲーム引数を渡します。ユーザー名、UUID、アクセストークンはヘルパーが設定します。
+Linux ユーザーごとに1アカウントを登録できます。`minecraft-auth --gui` で管理画面を開き、`minecraft-auth logout` でローカルの登録を削除できます。ランチャーからはゲームディレクトリ内で `minecraft-auth launch -- /absolute/path/to/java ...` に通常の Java 引数とゲーム引数を渡します。ユーザー名、UUID、アクセストークンはヘルパーが設定します。
 
 ## テスト
 
-`nix flake check` でパッケージをビルドし、テストを実行できます。他の flake からは `lib.mkAccount { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
+`nix flake check` でパッケージをビルドし、テストを実行できます。他の flake からは `lib.mkAuth { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
 
-**Account tests** は Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[テストの実行手順](.github/workflows/test.yml)
+**Authentication tests** は Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[テストの実行手順](.github/workflows/test.yml)
 
 ## 派生元
 

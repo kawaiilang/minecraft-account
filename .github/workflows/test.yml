@@ -1,4 +1,4 @@
-name: Account tests
+name: Authentication tests
 
 on:
   push:
@@ -23,11 +23,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends python3-secretstorage python3-venv python3-setuptools python3-wheel gnome-keyring dbus-daemon zenity xvfb xauth
           /usr/bin/python3 -m venv --system-site-packages .venv
           .venv/bin/pip install --no-index --no-deps --no-build-isolation .
-          .venv/bin/minecraft-account --help
+          .venv/bin/minecraft-auth --help
 
       - name: Test authentication and Java launch
         run: |
-          export AUTH_MODULE="$(.venv/bin/python -I -c 'import minecraft_account; print(minecraft_account.__file__)')"
+          export AUTH_MODULE="$(.venv/bin/python -I -c 'import minecraft_auth; print(minecraft_auth.__file__)')"
           export AUTH_JAVA="$(command -v java)"
           export AUTH_JAVA_PROBE="$PWD/tests/ArgumentProbe.java"
           .venv/bin/python tests/test_auth.py

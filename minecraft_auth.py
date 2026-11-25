@@ -154,12 +154,12 @@ def _device_code_login(ui) -> Tuple[str, str]:
             continue
         elif err in ("expired_token", "authorization_declined"):
             raise AuthError(
-                "Microsoft sign-in expired or was declined. Start Personal again to retry."
+                "Microsoft sign-in expired or was declined. Sign in again to retry."
             )
         elif token_status >= 400:
             raise AuthError("Microsoft sign-in failed. Please retry later.")
 
-    raise AuthError("Microsoft sign-in timed out. Start Personal again to retry.")
+    raise AuthError("Microsoft sign-in timed out. Sign in again to retry.")
 
 
 def _refresh_microsoft_token(refresh_token: str) -> Tuple[str, str]:
@@ -317,7 +317,7 @@ class Interface:
                 [
                     ZENITY,
                     "--text-info",
-                    "--title=Minecraft Personal",
+                    "--title=Minecraft Auth",
                     "--width=540",
                     "--height=240",
                     "--no-markup",
@@ -342,7 +342,7 @@ class Interface:
                     "--pulsate",
                     "--auto-close",
                     "--no-markup",
-                    "--title=Minecraft Personal — Microsoft sign-in",
+                    "--title=Minecraft Auth — Microsoft sign-in",
                     "--width=540",
                 ],
                 stdin=subprocess.PIPE,
@@ -397,6 +397,7 @@ def account_lock():
         raise AuthError(
             "The desktop runtime directory must belong to you with mode 0700."
         )
+    # Older releases use this lock when updating the same keyring entry.
     fd = os.open(
         os.path.join(runtime, "minecraft-personal-auth.lock"),
         os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC,
@@ -426,11 +427,11 @@ def account_lock():
 def validate_record(record):
     if not isinstance(record, dict) or record.get("schema") != 1:
         raise AuthError(
-            "The saved Personal account is invalid. Log out and sign in again."
+            "The saved Minecraft account is invalid. Log out and sign in again."
         )
     if not isinstance(record.get("refresh_token"), str) or not record["refresh_token"]:
         raise AuthError(
-            "The saved Personal account has no refresh credential. Sign in again."
+            "The saved Minecraft account has no refresh credential. Sign in again."
         )
     if not re.fullmatch(r"[0-9a-f]{32}", record.get("uuid", "")) or not re.fullmatch(
         r"[A-Za-z0-9_]{1,16}", record.get("username", "")
@@ -448,6 +449,7 @@ def validate_record(record):
 
 
 class AccountStore:
+    # These attributes identify saved accounts across application renames.
     attributes = {"application": "minecraft-personal", "slot": "default"}
 
     def __init__(self, unlock=True):
@@ -481,7 +483,7 @@ class AccountStore:
         items = list(self.collection.search_items(self.attributes))
         if len(items) > 1:
             raise AuthError(
-                "Multiple Personal credentials were found. Remove the duplicates in Passwords and Keys."
+                "Multiple Minecraft credentials were found. Remove the duplicates in Passwords and Keys."
             )
         return items
 
@@ -493,7 +495,7 @@ class AccountStore:
             record = json.loads(items[0].get_secret())
         except (json.JSONDecodeError, UnicodeDecodeError):
             raise AuthError(
-                "The saved Personal account cannot be read. In Minecraft Personal Account, choose 'Forget this account on this computer', then sign in again."
+                "The saved Minecraft account cannot be read. In Minecraft Auth, choose 'Forget this account on this computer', then sign in again."
             ) from None
         return validate_record(record)
 
@@ -506,7 +508,7 @@ class AccountStore:
             item.set_secret(data, content_type="application/json")
         else:
             item = self.collection.create_item(
-                "Minecraft Personal",
+                "Minecraft Auth",
                 self.attributes,
                 data,
                 replace=True,
@@ -625,7 +627,7 @@ def launch_java(command, record):
         record["mc_token"],
     ]
     fd = os.memfd_create(
-        "minecraft-personal-arguments", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING
+        "minecraft-auth-arguments", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING
     )
     try:
         with os.fdopen(os.dup(fd), "w") as handle:
@@ -651,7 +653,7 @@ def choose_action():
         [
             ZENITY,
             "--list",
-            "--title=Minecraft Personal account",
+            "--title=Minecraft Auth",
             "--column=Action",
             "--column=Description",
             "--hide-column=1",
@@ -684,23 +686,23 @@ def run_action(action, ui, command):
             if action == "logout":
                 store.delete()
                 ui.message(
-                    "Personal account removed from this computer. Already running games and Microsoft sessions are unchanged."
+                    "Minecraft account removed from this computer. Already running games and Microsoft sessions are unchanged."
                 )
             elif action == "status":
                 record = store.load()
                 ui.message(
                     f"Minecraft account: {record['username']}\nStored in GNOME Keyring."
                     if record
-                    else "No Personal account is registered."
+                    else "No Minecraft account is registered."
                 )
             elif action == "login":
                 if store.load() is not None:
                     raise AuthError(
-                        "A Personal account is already registered. Log out first to replace it."
+                        "A Minecraft account is already registered. Log out first to replace it."
                     )
                 record = login(store, ui)
                 ui.message(
-                    f"Signed in as {record['username']}. You can now launch Minecraft Personal."
+                    f"Signed in as {record['username']}. You can now launch Minecraft Java Edition."
                 )
             else:
                 record = credentials(store, ui)
@@ -714,7 +716,8 @@ def run_action(action, ui, command):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Minecraft Personal account, protected by GNOME Keyring"
+        prog="minecraft-auth",
+        description="Microsoft authentication for Minecraft Java Edition using GNOME Keyring",
     )
     parser.add_argument(
         "--gui", action="store_true", help="Show dialogs in the desktop session"
@@ -733,7 +736,7 @@ def main():
         if action != "launch" and command:
             raise AuthError("This account action does not accept additional arguments.")
         if action == "launch" and not command:
-            raise AuthError("Use the Minecraft Personal launcher to start the game.")
+            raise AuthError("The launcher must supply a Java command after '--'.")
         run_action(action, ui, command)
         return 0
     except (Cancelled, KeyboardInterrupt):
@@ -745,7 +748,7 @@ def main():
     except Exception:
         ui.finish()
         ui.message(
-            "Personal authentication failed. Check your connection and password-protected GNOME keyring, then retry. No plaintext fallback was used.",
+            "Minecraft authentication failed. Check your connection and password-protected GNOME keyring, then retry. No plaintext fallback was used.",
             error=True,
         )
         return 1

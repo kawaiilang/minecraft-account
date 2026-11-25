@@ -10,7 +10,7 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
-      mkAccount =
+      mkAuth =
         {
           pkgs,
           checkJdk ? pkgs.jdk25,
@@ -18,9 +18,9 @@
         pkgs.callPackage ./package.nix { inherit checkJdk; };
     in
     {
-      lib = { inherit mkAccount; };
+      lib = { inherit mkAuth; };
       packages = forAllSystems (system: {
-        default = mkAccount { pkgs = nixpkgs.legacyPackages.${system}; };
+        default = mkAuth { pkgs = nixpkgs.legacyPackages.${system}; };
       });
       checks = forAllSystems (system: {
         inherit (self.packages.${system}) default;

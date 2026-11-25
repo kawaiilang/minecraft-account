@@ -1,4 +1,4 @@
-"""Isolated Secret Service integration for minecraft-account."""
+"""Isolated Secret Service integration for minecraft-auth."""
 
 import importlib.util
 import os
@@ -71,14 +71,16 @@ with tempfile.TemporaryDirectory() as work:
                 value["refresh_token"] = "PRIVATE_KEYRING_ROTATED_FIXTURE"
                 store.save(value)
                 assert store.load() == value
-                items = list(collection.search_items(store.attributes))
+                # Previous releases must still find this entry after a token rotation.
+                saved_attributes = {"application": "minecraft-personal", "slot": "default"}
+                items = list(collection.search_items(saved_attributes))
                 assert len(items) == 1
                 attributes = items[0].get_attributes()
                 # GNOME Keyring may add its generic schema to the stored attributes.
                 schema = attributes.pop("xdg:schema", None)
                 assert schema in (None, "org.freedesktop.Secret.Generic"), schema
-                assert attributes == store.attributes, (attributes, store.attributes)
-                assert items[0].get_label() == "Minecraft Personal"
+                assert attributes == saved_attributes, (attributes, saved_attributes)
+                assert items[0].get_label() == "Minecraft Auth"
                 keyring_files = list((root / "data" / "keyrings").glob("*.keyring"))
                 assert keyring_files, "Persistent encrypted keyring must exist"
                 for file in keyring_files:

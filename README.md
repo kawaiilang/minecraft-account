@@ -1,8 +1,8 @@
-# minecraft-account
+# minecraft-auth
 
-[日本語](README-jp.md)
+English | [日本語](README-jp.md)
 
-A Linux account helper for Minecraft Java Edition. Sign in with a Microsoft
+A Linux authentication helper for Minecraft Java Edition. Sign in with a Microsoft
 device code, store the account in GNOME Keyring, and pass credentials to Java
 through a sealed anonymous file descriptor. The game launcher supplies the
 instance, classpath, and game arguments.
@@ -24,25 +24,25 @@ Zenity and xdg-open.
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install .
-.venv/bin/minecraft-account --help
-.venv/bin/minecraft-account login
-.venv/bin/minecraft-account status
+.venv/bin/minecraft-auth --help
+.venv/bin/minecraft-auth login
+.venv/bin/minecraft-auth status
 ```
 
-Each Linux user can register one account. Use `minecraft-account --gui` to
-manage it from the desktop or `minecraft-account logout` to forget it locally.
-For integration, invoke `minecraft-account launch -- /absolute/path/to/java ...`
+Each Linux user can register one account. Use `minecraft-auth --gui` to
+manage it from the desktop or `minecraft-auth logout` to forget it locally.
+For integration, invoke `minecraft-auth launch -- /absolute/path/to/java ...`
 in the game directory with the launcher's normal Java and game arguments.
 The helper supplies the username, UUID and access token.
 
 ## Tests
 
 Run `nix flake check` to build the package and run the tests. A consuming flake
-can build it with its own package set using `lib.mkAccount { inherit pkgs; }`.
+can build it with its own package set using `lib.mkAuth { inherit pkgs; }`.
 The optional `checkJdk` argument selects the Java used in tests and defaults
 to `pkgs.jdk25`. The launcher supplies Java when starting a game.
 
-The **Account tests** workflow runs on Ubuntu with synthetic accounts. It
+The **Authentication tests** workflow runs on Ubuntu with synthetic accounts. It
 exercises Microsoft and Minecraft response handling, a real Java process,
 Zenity under Xvfb, and a temporary keyring on a private D-Bus session.
 [See the test commands](.github/workflows/test.yml).

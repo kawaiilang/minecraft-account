@@ -1,4 +1,4 @@
-"""Tests for minecraft-account using synthetic credentials and network responses."""
+"""Tests for minecraft-auth using synthetic credentials and network responses."""
 
 import contextlib
 import copy
@@ -247,7 +247,7 @@ class AuthenticationTests(unittest.TestCase):
         ]:
             output = io.StringIO()
             with (
-                patch.object(sys, "argv", ["account", "status"]),
+                patch.object(sys, "argv", ["minecraft-auth", "status"]),
                 patch.object(auth, "run_action", side_effect=failure),
                 contextlib.redirect_stderr(output),
             ):
