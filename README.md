@@ -39,8 +39,11 @@ The helper supplies the username, UUID and access token.
 
 Run `nix flake check` to build the package and run the tests, linters, type
 checks, and workflow security audits. Use `nix fmt` to format Nix files or
-`nix develop` for a shell with the same Python and check tools. A consuming
-flake can build it with its own package set using `lib.mkAuth { inherit pkgs; }`.
+`nix develop` for a shell with the same Python and check tools. If your shell
+has the direnv hook enabled, run `direnv allow` in the repository root to load
+that environment automatically whenever you enter the checkout.
+
+A consuming flake can build it with its own package set using `lib.mkAuth { inherit pkgs; }`.
 The optional `checkJdk` argument selects the Java used in tests and defaults
 to `pkgs.jdk25`. The launcher supplies Java when starting a game.
 

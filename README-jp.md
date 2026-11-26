@@ -27,7 +27,9 @@ Linux ユーザーごとに1アカウントを登録できます。`minecraft-au
 
 ## テスト
 
-`nix flake check` でパッケージのビルド、テスト、Lint・型チェック・ワークフロー監査を一括実行できます。Nix ファイルの整形には `nix fmt`、同じツール構成の開発シェルには `nix develop` を使えます。他の flake からは `lib.mkAuth { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
+`nix flake check` でパッケージのビルド、テスト、Lint・型チェック・ワークフロー監査を一括実行できます。Nix ファイルの整形には `nix fmt`、同じツール構成の開発シェルには `nix develop` を使えます。シェルで direnv フックを有効にしている場合は、リポジトリのルートで `direnv allow` を実行すると、以後このディレクトリに入るたびに開発環境が自動で読み込まれます。
+
+他の flake からは `lib.mkAuth { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
 
 **CI** ワークフローでは、静的解析（`ruff`・`pyright`・`nixfmt`・`statix`・`deadnix`・`actionlint`・`zizmor`）、Nix パッケージ検証に加え、Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[CI ワークフローを見る](.github/workflows/ci.yml)
 
