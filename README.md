@@ -50,20 +50,6 @@ synthetic accounts exercising Microsoft and Minecraft response handling, a real
 Java process, Zenity under Xvfb, and a temporary keyring on a private D-Bus
 session. [See the CI workflow](.github/workflows/ci.yml).
 
-## Weekly flake.lock updates
-
-The weekly workflow runs on the default branch. Select that branch for manual
-runs too. When the lock file changes, the workflow runs `nix flake check` and
-the CLI help command before opening or updating a PR.
-
-1. In **Settings → Actions → General → Workflow permissions**, enable
-   **Allow GitHub Actions to create and approve pull requests** so the workflow
-   can open its PR. [GitHub Actions repository settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#setting-the-permissions-of-the-github_token-for-your-repository)
-2. When the workflow opens or updates a PR with `GITHUB_TOKEN`, GitHub.com
-   holds its CI and CodeQL runs for approval. Review the lock diff, then select
-   **Approve workflows to run** in the PR merge box using an account with write
-   access. [Triggering a workflow from a workflow](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
-
 ## Origin
 
 This helper was derived from

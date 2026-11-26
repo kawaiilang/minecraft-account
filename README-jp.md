@@ -31,13 +31,6 @@ Linux ユーザーごとに1アカウントを登録できます。`minecraft-au
 
 **CI** ワークフローでは、静的解析（`ruff`・`pyright`・`nixfmt`・`statix`・`deadnix`・`actionlint`・`zizmor`）、Nix パッケージ検証に加え、Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[CI ワークフローを見る](.github/workflows/ci.yml)
 
-## flake.lock の週次更新
-
-週次更新は既定ブランチで動きます。手動実行でも既定ブランチを選びます。lock ファイルに差分があるときは、`nix flake check` と CLI のヘルプ表示を検証してから PR を作成・更新します。
-
-1. **Settings → Actions → General → Workflow permissions** で **Allow GitHub Actions to create and approve pull requests** を有効にすると、ワークフローが PR を作成できます。[GitHub Actions のリポジトリ設定](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#setting-the-permissions-of-the-github_token-for-your-repository)
-2. `GITHUB_TOKEN` で PR を作成・更新すると、GitHub.com では CI と CodeQL が承認待ちになります。書き込み権限のあるメンテナーが lock の差分を確認し、PR のマージ欄で **Approve workflows to run** を選ぶと検証が始まります。[ワークフローから別のワークフローを起動する手順](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
-
 ## 派生元
 
 [Nixcraft の client-auth.py（fd933a2）](https://github.com/loystonpais/nixcraft/blob/fd933a2806fbc8c1627018a80489964d618b0c2c/nix/client-auth/client-auth.py)にキーリング保存と Java 起動の変更を取り込んで独立させました。Microsoft・Xbox・Minecraft の認証仕様が変わった際は上流と照合してください。[GPL-3.0-only ライセンス](LICENSE)
