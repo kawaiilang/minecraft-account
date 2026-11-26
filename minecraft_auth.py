@@ -5,22 +5,23 @@
 """Authenticate Minecraft Java accounts and launch with GNOME Keyring credentials."""
 
 import argparse
+import fcntl
 import json
 import os
+import re
 import ssl
+import stat
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from contextlib import contextmanager
-from typing import Any, Dict, Optional, Tuple
-import fcntl
-import re
-import stat
-import subprocess
+from typing import Any
 
 import secretstorage
+import secretstorage.exceptions
 
 ZENITY = "zenity"
 XDG_OPEN = "xdg-open"
@@ -39,12 +40,14 @@ def normalize_uuid(uuid_str: str) -> str:
 def _http_request(
     url: str,
     method: str = "GET",
-    data: Optional[Dict[str, Any]] = None,
-    json_data: Optional[Dict[str, Any]] = None,
-    headers: Optional[Dict[str, str]] = None,
+    data: dict[str, Any] | None = None,
+    json_data: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
     timeout: float = 15.0,
-) -> Tuple[int, Dict[str, Any], bytes, Dict[str, str]]:
+) -> tuple[int, dict[str, Any], bytes, dict[str, str]]:
     """Execute an HTTP request and parse JSON response if present."""
+    if not url.startswith("https://"):
+        raise AuthError("Refusing to contact an insecure authentication endpoint.")
     req_headers = {
         "User-Agent": "MinecraftLauncher/2.2.10675",
         "Accept": "application/json",
@@ -60,12 +63,12 @@ def _http_request(
         req_headers["Content-Type"] = "application/x-www-form-urlencoded"
         body_bytes = urllib.parse.urlencode(data).encode("utf-8")
 
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310
         url, data=body_bytes, headers=req_headers, method=method
     )
 
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # noqa: S310
             req, timeout=timeout, context=_SSL_CONTEXT
         ) as response:
             res_code = response.status
@@ -77,7 +80,7 @@ def _http_request(
                 parsed = {}
             return res_code, parsed, raw_data, res_headers
     except urllib.error.HTTPError as e:
-        res_headers = dict(e.headers) if hasattr(e, "headers") else {}
+        res_headers = dict(e.headers) if e.headers is not None else {}
         raw_data = e.read()
         try:
             parsed = json.loads(raw_data.decode("utf-8")) if raw_data else {}
@@ -90,7 +93,7 @@ def _http_request(
         ) from None
 
 
-def _device_code_login(ui) -> Tuple[str, str]:
+def _device_code_login(ui) -> tuple[str, str]:
     """Initiate Microsoft Live OAuth Device Flow and poll until authorization succeeds."""
     code_status, code_res, _, headers = _http_request(
         "https://login.live.com/oauth20_connect.srf",
@@ -162,7 +165,7 @@ def _device_code_login(ui) -> Tuple[str, str]:
     raise AuthError("Microsoft sign-in timed out. Sign in again to retry.")
 
 
-def _refresh_microsoft_token(refresh_token: str) -> Tuple[str, str]:
+def _refresh_microsoft_token(refresh_token: str) -> tuple[str, str]:
     """Exchange a Microsoft refresh token for new access and refresh tokens."""
     status, res, _, _ = _http_request(
         "https://login.live.com/oauth20_token.srf",
@@ -183,7 +186,7 @@ def _refresh_microsoft_token(refresh_token: str) -> Tuple[str, str]:
     return res["access_token"], res["refresh_token"]
 
 
-def _exchange_for_minecraft_chain(ms_access_token: str) -> Tuple[str, int, str, str]:
+def _exchange_for_minecraft_chain(ms_access_token: str) -> tuple[str, int, str, str]:
     """
     Exchange Microsoft access token through Xbox Live (XAU), XSTS, and Minecraft services.
     Returns (mc_access_token, mc_expires_in, username, normalized_uuid).
@@ -309,11 +312,11 @@ class LoginRequired(Exception):
 class Interface:
     def __init__(self, gui=False):
         self.gui = gui
-        self.progress = None
+        self.progress: subprocess.Popen[str] | None = None
 
     def message(self, text, error=False):
         if self.gui:
-            subprocess.run(
+            subprocess.run(  # noqa: S603
                 [
                     ZENITY,
                     "--text-info",
@@ -335,7 +338,7 @@ class Interface:
         # Display the short-lived code locally, never put it in process arguments.
         text = f"Open {uri}\nEnter code: {code}\nWaiting for Microsoft authorization…"
         if self.gui:
-            self.progress = subprocess.Popen(
+            self.progress = subprocess.Popen(  # noqa: S603
                 [
                     ZENITY,
                     "--progress",
@@ -350,9 +353,11 @@ class Interface:
                 stderr=subprocess.DEVNULL,
                 text=True,
             )
+            if self.progress.stdin is None:
+                raise AuthError("Could not communicate with the sign-in dialog.")
             self.progress.stdin.write("# " + text.replace("\n", "  ") + "\n")
             self.progress.stdin.flush()
-            subprocess.run(
+            subprocess.run(  # noqa: S603
                 [XDG_OPEN, uri],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -377,7 +382,8 @@ class Interface:
             if self.progress.poll() is None:
                 self.progress.terminate()
             self.progress.wait()
-            self.progress.stdin.close()
+            if self.progress.stdin is not None:
+                self.progress.stdin.close()
             self.progress = None
 
 
@@ -643,13 +649,13 @@ def launch_java(command, record):
             | fcntl.F_SEAL_SEAL,
         )
         os.set_inheritable(fd, True)
-        os.execv(command[0], [command[0], f"@/proc/self/fd/{fd}"])
+        os.execv(command[0], [command[0], f"@/proc/self/fd/{fd}"])  # noqa: S606
     finally:
         os.close(fd)
 
 
 def choose_action():
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603
         [
             ZENITY,
             "--list",
@@ -680,6 +686,7 @@ def choose_action():
 
 
 def run_action(action, ui, command):
+    record = None
     with account_lock():
         store = AccountStore(unlock=action != "status")
         try:
@@ -710,6 +717,8 @@ def run_action(action, ui, command):
             store.close()
     # The lock and D-Bus connection must not survive into the game.
     if action == "launch":
+        if record is None:
+            raise AuthError("No Minecraft account is registered.")
         ui.finish()
         launch_java(command, record)
 

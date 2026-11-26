@@ -27,9 +27,16 @@ Linux ユーザーごとに1アカウントを登録できます。`minecraft-au
 
 ## テスト
 
-`nix flake check` でパッケージをビルドし、テストを実行できます。他の flake からは `lib.mkAuth { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
+`nix flake check` でパッケージのビルド、テスト、Lint・型チェック・ワークフロー監査を一括実行できます。Nix ファイルの整形には `nix fmt`、同じツール構成の開発シェルには `nix develop` を使えます。他の flake からは `lib.mkAuth { inherit pkgs; }` で利用側のパッケージセットを渡せます。テスト用 Java を指定する引数 `checkJdk` の既定値は `pkgs.jdk25` です。ゲーム起動時の Java はランチャーが指定します。
 
-**Authentication tests** は Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[テストの実行手順](.github/workflows/test.yml)
+**CI** ワークフローでは、静的解析（`ruff`・`pyright`・`nixfmt`・`statix`・`deadnix`・`actionlint`・`zizmor`）、Nix パッケージ検証に加え、Ubuntu 上で架空のアカウントを使い、認証応答の処理、実際の Java プロセスへの引き渡し、Xvfb 上の Zenity、専用 D-Bus セッション内の一時キーリングを検証します。[CI ワークフローを見る](.github/workflows/ci.yml)
+
+## flake.lock の週次更新
+
+週次更新は既定ブランチで動きます。手動実行でも既定ブランチを選びます。lock ファイルに差分があるときは、`nix flake check` と CLI のヘルプ表示を検証してから PR を作成・更新します。
+
+1. **Settings → Actions → General → Workflow permissions** で **Allow GitHub Actions to create and approve pull requests** を有効にすると、ワークフローが PR を作成できます。[GitHub Actions のリポジトリ設定](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#setting-the-permissions-of-the-github_token-for-your-repository)
+2. `GITHUB_TOKEN` で PR を作成・更新すると、GitHub.com では CI と CodeQL が承認待ちになります。書き込み権限のあるメンテナーが lock の差分を確認し、PR のマージ欄で **Approve workflows to run** を選ぶと検証が始まります。[ワークフローから別のワークフローを起動する手順](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
 
 ## 派生元
 

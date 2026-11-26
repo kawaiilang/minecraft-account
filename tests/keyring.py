@@ -2,16 +2,19 @@
 
 import importlib.util
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import time
+from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import secretstorage
+import secretstorage.exceptions
 
 spec = importlib.util.spec_from_file_location("auth", os.environ["AUTH_MODULE"])
-auth = importlib.util.module_from_spec(spec)
+assert spec is not None and spec.loader is not None
+auth: Any = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(auth)
 
 with tempfile.TemporaryDirectory() as work:
@@ -33,6 +36,7 @@ with tempfile.TemporaryDirectory() as work:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    assert daemon.stdin is not None
     daemon.stdin.write(b"synthetic-keyring-password\n")
     daemon.stdin.close()
     connection = None
@@ -72,7 +76,10 @@ with tempfile.TemporaryDirectory() as work:
                 store.save(value)
                 assert store.load() == value
                 # Previous releases must still find this entry after a token rotation.
-                saved_attributes = {"application": "minecraft-personal", "slot": "default"}
+                saved_attributes = {
+                    "application": "minecraft-personal",
+                    "slot": "default",
+                }
                 items = list(collection.search_items(saved_attributes))
                 assert len(items) == 1
                 attributes = items[0].get_attributes()

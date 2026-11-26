@@ -1,17 +1,41 @@
-name: Authentication tests
+name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
 
 jobs:
+  lint:
+    name: Lint and static analysis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+
+      - name: Run linters, type checks, and workflow audits
+        run: nix build --no-update-lock-file --no-link --print-build-logs .#checks.x86_64-linux.lint
+
   test:
+    name: Authentication tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,22 +51,31 @@ jobs:
 
       - name: Test authentication and Java launch
         run: |
-          export AUTH_MODULE="$(.venv/bin/python -I -c 'import minecraft_auth; print(minecraft_auth.__file__)')"
-          export AUTH_JAVA="$(command -v java)"
-          export AUTH_JAVA_PROBE="$PWD/tests/ArgumentProbe.java"
+          AUTH_MODULE="$(.venv/bin/python -I -c 'import minecraft_auth; print(minecraft_auth.__file__)')"
+          AUTH_JAVA="$(command -v java)"
+          AUTH_JAVA_PROBE="$PWD/tests/ArgumentProbe.java"
+          export AUTH_MODULE AUTH_JAVA AUTH_JAVA_PROBE
           .venv/bin/python tests/test_auth.py
           xvfb-run -a .venv/bin/python tests/gui.py
           dbus-run-session --config-file=tests/session.conf -- .venv/bin/python tests/keyring.py
 
   nix-checks:
+    name: Nix package checks
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
       - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+
+      - name: Evaluate flake outputs
+        run: nix flake check --no-build --no-update-lock-file
+
       - name: Build and test the Nix package
         run: |
-          nix flake check --no-update-lock-file --print-build-logs
+          nix build --no-update-lock-file --no-link --print-build-logs .#checks.x86_64-linux.default
           nix run --no-update-lock-file . -- --help

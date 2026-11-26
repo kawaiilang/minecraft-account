@@ -5,15 +5,17 @@ import copy
 import importlib.util
 import io
 import os
-from pathlib import Path
 import sys
 import tempfile
 import time
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location("auth", os.environ["AUTH_MODULE"])
-auth = importlib.util.module_from_spec(spec)
+assert spec is not None and spec.loader is not None
+auth: Any = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(auth)
 TOKEN = "SYNTHETIC_ACCESS_TOKEN_DO_NOT_LOG"
 REFRESH = "SYNTHETIC_REFRESH_TOKEN_DO_NOT_LOG"
@@ -109,6 +111,7 @@ class AuthenticationTests(unittest.TestCase):
         store = Store(record(expired=True))
 
         def downstream(_):
+            assert store.value is not None
             self.assertEqual(store.value["refresh_token"], "rotated")
             self.assertEqual(store.value["mc_token"], "")
             raise auth.AuthError("Xbox temporarily unavailable")
@@ -121,6 +124,7 @@ class AuthenticationTests(unittest.TestCase):
         ):
             with self.assertRaises(auth.AuthError):
                 auth.credentials(store, Interface())
+        assert store.value is not None
         self.assertEqual(store.value["refresh_token"], "rotated")
 
     def test_secret_write_failure_stops_downstream_and_launch(self):
@@ -234,7 +238,7 @@ class AuthenticationTests(unittest.TestCase):
                 with self.assertRaises(auth.AuthError):
                     auth._device_code_login(Interface())
         ui = Interface()
-        ui.wait = lambda _: (_ for _ in ()).throw(auth.Cancelled())
+        ui.wait = lambda seconds: (_ for _ in ()).throw(auth.Cancelled())
         with patch.object(auth, "_http_request", return_value=initiation):
             with self.assertRaises(auth.Cancelled):
                 auth._device_code_login(ui)
